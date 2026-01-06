@@ -126,16 +126,16 @@ function check(){
   const url = tokenEl.value.trim();
 
   if(!url){
-    log("❌ URLが入力されていません");
+    log("Tokenが入力されていません");
     return;
   }
 
   if(!isWebhookUrl(url)){
-    log("❌ Webhook URLではありません");
+    log("Webhook Tokenではありません");
     return;
   }
 
-  log("⏳ チェック中…");
+  log("チェック中…");
 
   fetch(url)
     .then(r=>{
@@ -143,14 +143,14 @@ function check(){
       return r.json();
     })
     .then(d=>{
-      log("✅ Webhookは有効です");
-      if(d.guild?.name) log("🏠 サーバー名: " + d.guild.name);
-      if(d.guild_id) log("🆔 サーバーID: " + d.guild_id);
-      if(d.channel?.name) log("💬 チャンネル名: " + d.channel.name);
-      if(d.channel_id) log("🆔 チャンネルID: " + d.channel_id);
+      log("このWebhookは使えます");
+      if(d.guild?.name) log("サーバー名: " + d.guild.name);
+      if(d.guild_id) log("サーバーID: " + d.guild_id);
+      if(d.channel?.name) log("チャンネル名: " + d.channel.name);
+      if(d.channel_id) log("チャンネルID: " + d.channel_id);
     })
     .catch(()=>{
-      log("❌ Webhookは無効です");
+      log("このWebhookは使えません");
     });
 }
 </script>
