@@ -62,7 +62,7 @@ button{
 .log{
   margin-top:14px;
   font-size:13px;
-  max-height:140px;
+  max-height:160px;
   overflow:auto;
   color:#fecaca;
 }
@@ -74,7 +74,7 @@ button{
   <h1>Webhook Token Checker</h1>
 
   <textarea id="token"
-    placeholder="WebhookのURLをここに貼り付けてください"></textarea>
+    placeholder="Discord Webhook URL を貼り付けてください"></textarea>
 
   <button onclick="check()">チェック</button>
 
@@ -93,8 +93,8 @@ function now(){
   return `[${h}:${m}:${s}]`;
 }
 
-function log(t){
-  logEl.innerHTML += `${now()} ${t}<br>`;
+function log(text){
+  logEl.innerHTML += `${now()} ${text}<br>`;
   logEl.scrollTop = logEl.scrollHeight;
 }
 
@@ -112,23 +112,27 @@ function check(){
   }
 
   if(!isWebhookUrl(url)){
-    log("❌ これはWebhookのURLではありません");
+    log("❌ Webhook URL の形式が不正です");
     return;
   }
 
-  log("⏳ チェック中…");
+  log("🔍 チェック中…");
 
-  fetch(url,{ method:"GET" })
-    .then(res=>{
-      if(res.ok){
-        log("✅ このトークンは使えます");
-      }else{
-        log("❌ このトークンは使えません");
-      }
-    })
-    .catch(()=>{
+  fetch(url,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({ content:" " }) // 空送信
+  })
+  .then(res=>{
+    if(res.status === 204){
+      log("✅ このトークンは使えます");
+    }else{
       log("❌ このトークンは使えません");
-    });
+    }
+  })
+  .catch(()=>{
+    log("❌ このトークンは使えません");
+  });
 }
 </script>
 </body>
