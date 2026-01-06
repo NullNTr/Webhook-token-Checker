@@ -6,6 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+*{
+  box-sizing:border-box; /* ← 超重要 */
+}
+
 body{
   margin:0;
   min-height:100vh;
@@ -16,27 +20,33 @@ body{
   font-family:system-ui,sans-serif;
   color:#fee2e2;
 }
+
 .container{
-  width:94%;
+  width:100%;
   max-width:520px;
-  padding:24px;
+  margin:12px;
+  padding:20px;
   background:linear-gradient(145deg,#1a0000,#000);
   border-radius:18px;
   border:1px solid #7f1d1d;
   box-shadow:0 0 40px rgba(239,68,68,.35);
+  overflow:hidden; /* ← はみ出し防止 */
 }
+
 h1{
   text-align:center;
-  margin-bottom:18px;
-  font-size:26px;
+  margin-bottom:16px;
+  font-size:24px;
   background:linear-gradient(90deg,#fecaca,#ef4444,#7f1d1d);
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
 }
+
 textarea{
   width:100%;
+  display:block;
   margin-top:10px;
-  padding:14px;
+  padding:12px;
   border-radius:12px;
   background:#000;
   color:#fee2e2;
@@ -45,8 +55,10 @@ textarea{
   resize:none;
   height:120px;
 }
+
 button{
   width:100%;
+  display:block;
   margin-top:12px;
   padding:14px;
   font-size:15px;
@@ -56,18 +68,22 @@ button{
   cursor:pointer;
   color:white;
 }
+
 .check{
   background:linear-gradient(135deg,#dc2626,#ef4444,#7f1d1d);
 }
+
 .clear{
   background:linear-gradient(135deg,#374151,#111827);
 }
+
 .log{
   margin-top:14px;
   font-size:13px;
   max-height:160px;
   overflow:auto;
   color:#fecaca;
+  word-break:break-all; /* ← 長文対策 */
 }
 </style>
 </head>
@@ -89,12 +105,11 @@ const tokenEl = document.getElementById("token");
 const logEl = document.getElementById("log");
 
 function now(){
-  const d=new Date();
-  return `[${d.toLocaleTimeString()}]`;
+  return "[" + new Date().toLocaleTimeString() + "]";
 }
 
-function log(text){
-  logEl.innerHTML += `${now()} ${text}<br>`;
+function log(t){
+  logEl.innerHTML += `${now()} ${t}<br>`;
   logEl.scrollTop = logEl.scrollHeight;
 }
 
@@ -123,20 +138,19 @@ function check(){
   log("⏳ チェック中…");
 
   fetch(url)
-    .then(res=>{
-      if(!res.ok) throw new Error();
-      return res.json();
+    .then(r=>{
+      if(!r.ok) throw new Error();
+      return r.json();
     })
-    .then(data=>{
-      log("✅ このWebhookは有効です");
-      if(data.guild_id) log(`🏠 サーバーID: ${data.guild_id}`);
-      if(data.guild?.name) log(`📛 サーバー名: ${data.guild.name}`);
-      if(data.channel_id) log(`💬 チャンネルID: ${data.channel_id}`);
-      if(data.channel?.name) log(`📝 チャンネル名: ${data.channel.name}`);
-      if(data.name) log(`🔗 Webhook名: ${data.name}`);
+    .then(d=>{
+      log("✅ Webhookは有効です");
+      if(d.guild?.name) log("🏠 サーバー名: " + d.guild.name);
+      if(d.guild_id) log("🆔 サーバーID: " + d.guild_id);
+      if(d.channel?.name) log("💬 チャンネル名: " + d.channel.name);
+      if(d.channel_id) log("🆔 チャンネルID: " + d.channel_id);
     })
     .catch(()=>{
-      log("❌ このWebhookは無効です");
+      log("❌ Webhookは無効です");
     });
 }
 </script>
