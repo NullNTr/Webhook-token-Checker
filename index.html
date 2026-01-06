@@ -6,8 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-*{box-sizing:border-box}
-
 body{
   margin:0;
   min-height:100vh;
@@ -18,9 +16,8 @@ body{
   font-family:system-ui,sans-serif;
   color:#fee2e2;
 }
-
 .container{
-  width:92%;
+  width:94%;
   max-width:520px;
   padding:24px;
   background:linear-gradient(145deg,#1a0000,#000);
@@ -28,7 +25,6 @@ body{
   border:1px solid #7f1d1d;
   box-shadow:0 0 40px rgba(239,68,68,.35);
 }
-
 h1{
   text-align:center;
   margin-bottom:18px;
@@ -37,7 +33,6 @@ h1{
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
 }
-
 textarea{
   width:100%;
   margin-top:10px;
@@ -46,42 +41,34 @@ textarea{
   background:#000;
   color:#fee2e2;
   border:1px solid #7f1d1d;
-  outline:none;
   font-size:14px;
   resize:none;
-  height:130px;
-  word-break:break-all;
+  height:120px;
 }
-
 button{
   width:100%;
-  margin-top:14px;
-  padding:15px;
-  font-size:16px;
+  margin-top:12px;
+  padding:14px;
+  font-size:15px;
   font-weight:bold;
   border-radius:14px;
   border:none;
   cursor:pointer;
   color:white;
+}
+.check{
   background:linear-gradient(135deg,#dc2626,#ef4444,#7f1d1d);
 }
-
 .clear{
-  margin-top:8px;
-  background:#111;
+  background:linear-gradient(135deg,#374151,#111827);
 }
-
 .log{
   margin-top:14px;
-  padding:12px;
-  border-radius:12px;
-  border:1px solid #7f1d1d;
-  background:#000;
   font-size:13px;
-  max-height:180px;
+  max-height:160px;
   overflow:auto;
+  color:#fecaca;
 }
-a{color:#fca5a5}
 </style>
 </head>
 
@@ -89,37 +76,37 @@ a{color:#fca5a5}
 <div class="container">
   <h1>Webhook Token Checker</h1>
 
-  <textarea id="token" placeholder="WebhookのURLを貼り付けてください"></textarea>
+  <textarea id="token" placeholder="Webhook URLを貼り付けてください"></textarea>
 
-  <button onclick="check()">チェック</button>
+  <button class="check" onclick="check()">チェック</button>
   <button class="clear" onclick="clearLog()">ログクリア</button>
 
   <div class="log" id="log"></div>
 </div>
 
 <script>
-const logEl = document.getElementById("log");
 const tokenEl = document.getElementById("token");
+const logEl = document.getElementById("log");
 
 function now(){
   const d=new Date();
   return `[${d.toLocaleTimeString()}]`;
 }
 
-function log(t){
-  logEl.innerHTML += `${now()} ${t}<br>`;
+function log(text){
+  logEl.innerHTML += `${now()} ${text}<br>`;
   logEl.scrollTop = logEl.scrollHeight;
 }
 
 function clearLog(){
-  logEl.innerHTML="";
+  logEl.innerHTML = "";
 }
 
 function isWebhookUrl(url){
   return /^https:\/\/(canary\.|ptb\.)?discord\.com\/api\/webhooks\/\d+\/[\w-]+$/i.test(url);
 }
 
-async function check(){
+function check(){
   clearLog();
   const url = tokenEl.value.trim();
 
@@ -129,36 +116,28 @@ async function check(){
   }
 
   if(!isWebhookUrl(url)){
-    log("❌ WebhookのURLではありません");
+    log("❌ Webhook URLではありません");
     return;
   }
 
-  log("⏳ チェック開始");
+  log("⏳ チェック中…");
 
-  try{
-    const res = await fetch(url);
-    if(!res.ok){
+  fetch(url)
+    .then(res=>{
+      if(!res.ok) throw new Error();
+      return res.json();
+    })
+    .then(data=>{
+      log("✅ このWebhookは有効です");
+      if(data.guild_id) log(`🏠 サーバーID: ${data.guild_id}`);
+      if(data.guild?.name) log(`📛 サーバー名: ${data.guild.name}`);
+      if(data.channel_id) log(`💬 チャンネルID: ${data.channel_id}`);
+      if(data.channel?.name) log(`📝 チャンネル名: ${data.channel.name}`);
+      if(data.name) log(`🔗 Webhook名: ${data.name}`);
+    })
+    .catch(()=>{
       log("❌ このWebhookは無効です");
-      return;
-    }
-
-    const data = await res.json();
-
-    log("✅ Webhookは有効です");
-    log(`🔗 Webhook名：${data.name || "不明"}`);
-    log(`🆔 サーバーID：${data.guild_id || "取得不可"}`);
-    log(`📌 チャンネルID：${data.channel_id || "取得不可"}`);
-
-    if(data.guild_id && data.channel_id){
-      const link = `https://discord.com/channels/${data.guild_id}/${data.channel_id}`;
-      log(`➡ チャンネルリンク：<a href="${link}" target="_blank">${link}</a>`);
-    }
-
-    log("ℹ サーバー名・招待リンクはWebhookのみでは取得不可");
-
-  }catch(e){
-    log("❌ 通信エラー");
-  }
+    });
 }
 </script>
 </body>
