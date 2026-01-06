@@ -35,14 +35,12 @@ h1{
 }
 textarea{
   width:100%;
-  box-sizing:border-box;
   margin-top:10px;
   padding:14px;
   border-radius:12px;
   background:#000;
   color:#fee2e2;
   border:1px solid #7f1d1d;
-  outline:none;
   font-size:14px;
   resize:none;
   height:140px;
@@ -61,10 +59,15 @@ button{
 }
 .log{
   margin-top:14px;
+  padding:10px;
   font-size:13px;
+  min-height:80px;
   max-height:160px;
   overflow:auto;
   color:#fecaca;
+  border:1px solid #7f1d1d;
+  border-radius:10px;
+  background:#050000;
 }
 </style>
 </head>
@@ -73,12 +76,11 @@ button{
 <div class="container">
   <h1>Webhook Token Checker</h1>
 
-  <textarea id="token"
-    placeholder="Discord Webhook URL を貼り付けてください"></textarea>
+  <textarea id="token" placeholder="WebhookのURLを貼り付けてください"></textarea>
 
   <button onclick="check()">チェック</button>
 
-  <div class="log" id="log"></div>
+  <div class="log" id="log">[準備完了] トークンを入力してチェックしてください</div>
 </div>
 
 <script>
@@ -87,14 +89,11 @@ const logEl = document.getElementById("log");
 
 function now(){
   const d=new Date();
-  const h=String(d.getHours()).padStart(2,"0");
-  const m=String(d.getMinutes()).padStart(2,"0");
-  const s=String(d.getSeconds()).padStart(2,"0");
-  return `[${h}:${m}:${s}]`;
+  return `[${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}:${d.getSeconds().toString().padStart(2,"0")}]`;
 }
 
 function log(text){
-  logEl.innerHTML += `${now()} ${text}<br>`;
+  logEl.innerHTML += `<br>${now()} ${text}`;
   logEl.scrollTop = logEl.scrollHeight;
 }
 
@@ -106,33 +105,31 @@ function check(){
   logEl.innerHTML = "";
   const url = tokenEl.value.trim();
 
+  log("チェック開始");
+
   if(!url){
     log("❌ トークンが入力されていません");
     return;
   }
 
   if(!isWebhookUrl(url)){
-    log("❌ Webhook URL の形式が不正です");
+    log("❌ WebhookのURL形式ではありません");
     return;
   }
 
-  log("🔍 チェック中…");
+  log("⏳ Webhookに接続中…");
 
-  fetch(url,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({ content:" " }) // 空送信
-  })
-  .then(res=>{
-    if(res.status === 204){
-      log("✅ このトークンは使えます");
-    }else{
-      log("❌ このトークンは使えません");
-    }
-  })
-  .catch(()=>{
-    log("❌ このトークンは使えません");
-  });
+  fetch(url,{ method:"GET" })
+    .then(res=>{
+      if(res.ok){
+        log("✅ このWebhookトークンは使えます");
+      }else{
+        log("❌ このWebhookトークンは使えません");
+      }
+    })
+    .catch(()=>{
+      log("⚠ CORS制限により判定不可（無効の可能性あり）");
+    });
 }
 </script>
 </body>
