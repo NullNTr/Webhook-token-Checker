@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+*{box-sizing:border-box}
+
 body{
   margin:0;
   min-height:100vh;
@@ -16,8 +18,9 @@ body{
   font-family:system-ui,sans-serif;
   color:#fee2e2;
 }
+
 .container{
-  width:94%;
+  width:92%;
   max-width:520px;
   padding:24px;
   background:linear-gradient(145deg,#1a0000,#000);
@@ -25,6 +28,7 @@ body{
   border:1px solid #7f1d1d;
   box-shadow:0 0 40px rgba(239,68,68,.35);
 }
+
 h1{
   text-align:center;
   margin-bottom:18px;
@@ -33,9 +37,9 @@ h1{
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
 }
+
 textarea{
   width:100%;
-  margin-top:10px;
   padding:14px;
   border-radius:12px;
   background:#000;
@@ -43,11 +47,12 @@ textarea{
   border:1px solid #7f1d1d;
   font-size:14px;
   resize:none;
-  height:140px;
+  height:130px;
 }
+
 button{
   width:100%;
-  margin-top:14px;
+  margin-top:12px;
   padding:15px;
   font-size:16px;
   font-weight:bold;
@@ -55,20 +60,29 @@ button{
   border:none;
   cursor:pointer;
   color:white;
+}
+
+.check{
   background:linear-gradient(135deg,#dc2626,#ef4444,#7f1d1d);
 }
+
+.clear{
+  background:#111;
+}
+
 .log{
   margin-top:14px;
-  padding:10px;
   font-size:13px;
-  min-height:80px;
-  max-height:160px;
+  max-height:170px;
   overflow:auto;
   color:#fecaca;
-  border:1px solid #7f1d1d;
-  border-radius:10px;
-  background:#050000;
 }
+
+/* ログ色 */
+.ok{color:#22c55e}
+.ng{color:#ef4444}
+.warn{color:#f59e0b}
+.info{color:#fca5a5}
 </style>
 </head>
 
@@ -76,11 +90,13 @@ button{
 <div class="container">
   <h1>Webhook Token Checker</h1>
 
-  <textarea id="token" placeholder="WebhookのURLを貼り付けてください"></textarea>
+  <textarea id="token"
+    placeholder="Webhook URLを改行で貼り付け"></textarea>
 
-  <button onclick="check()">チェック</button>
+  <button class="check" onclick="check()">チェック</button>
+  <button class="clear" onclick="clearLog()">ログクリア</button>
 
-  <div class="log" id="log">[準備完了] トークンを入力してチェックしてください</div>
+  <div class="log" id="log">待機中</div>
 </div>
 
 <script>
@@ -89,47 +105,63 @@ const logEl = document.getElementById("log");
 
 function now(){
   const d=new Date();
-  return `[${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}:${d.getSeconds().toString().padStart(2,"0")}]`;
+  return `[${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}]`;
 }
 
-function log(text){
-  logEl.innerHTML += `<br>${now()} ${text}`;
+function log(text,cls="info"){
+  logEl.innerHTML += `<br><span class="${cls}">${now()} ${text}</span>`;
   logEl.scrollTop = logEl.scrollHeight;
+}
+
+function clearLog(){
+  logEl.innerHTML = "ログをクリアしました";
 }
 
 function isWebhookUrl(url){
   return /^https:\/\/(canary\.|ptb\.)?discord\.com\/api\/webhooks\/\d+\/[\w-]+$/i.test(url);
 }
 
-function check(){
+function fetchWithTimeout(url, ms=5000){
+  return Promise.race([
+    fetch(url,{method:"GET"}),
+    new Promise((_,reject)=>setTimeout(()=>reject("timeout"),ms))
+  ]);
+}
+
+async function check(){
   logEl.innerHTML = "";
-  const url = tokenEl.value.trim();
+  const urls = tokenEl.value.split("\n").map(v=>v.trim()).filter(Boolean);
 
-  log("チェック開始");
-
-  if(!url){
-    log("❌ トークンが入力されていません");
+  if(urls.length===0){
+    log("❌ 入力がありません","ng");
     return;
   }
 
-  if(!isWebhookUrl(url)){
-    log("❌ WebhookのURL形式ではありません");
-    return;
-  }
+  log(`▶ ${urls.length} 件チェック開始`);
 
-  log("⏳ Webhookに接続中…");
+  for(const url of urls){
+    if(!isWebhookUrl(url)){
+      log("❌ URL形式エラー","ng");
+      continue;
+    }
 
-  fetch(url,{ method:"GET" })
-    .then(res=>{
+    try{
+      const res = await fetchWithTimeout(url,5000);
       if(res.ok){
-        log("✅ このWebhookトークンは使えます");
+        log("✅ このトークンは使えます","ok");
       }else{
-        log("❌ このWebhookトークンは使えません");
+        log(`❌ 無効 (${res.status})`,"ng");
       }
-    })
-    .catch(()=>{
-      log("⚠ CORS制限により判定不可（無効の可能性あり）");
-    });
+    }catch(e){
+      if(e==="timeout"){
+        log("⚠ タイムアウト（判定不可）","warn");
+      }else{
+        log("⚠ CORS制限で判定不可","warn");
+      }
+    }
+  }
+
+  log("■ チェック完了","info");
 }
 </script>
 </body>
