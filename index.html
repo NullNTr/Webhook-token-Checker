@@ -6,7 +6,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-*{box-sizing:border-box}
+*{
+  box-sizing:border-box;
+}
 
 body{
   margin:0;
@@ -27,6 +29,7 @@ body{
   border-radius:18px;
   border:1px solid #7f1d1d;
   box-shadow:0 0 40px rgba(239,68,68,.35);
+  overflow:hidden;
 }
 
 h1{
@@ -40,19 +43,27 @@ h1{
 
 textarea{
   width:100%;
+  max-width:100%;
+  margin-top:10px;
   padding:14px;
   border-radius:12px;
   background:#000;
   color:#fee2e2;
   border:1px solid #7f1d1d;
+  outline:none;
   font-size:14px;
   resize:none;
   height:130px;
+
+  /* はみ出し防止 */
+  overflow-x:hidden;
+  word-break:break-all;
+  white-space:pre-wrap;
 }
 
 button{
   width:100%;
-  margin-top:12px;
+  margin-top:14px;
   padding:15px;
   font-size:16px;
   font-weight:bold;
@@ -60,29 +71,26 @@ button{
   border:none;
   cursor:pointer;
   color:white;
-}
-
-.check{
   background:linear-gradient(135deg,#dc2626,#ef4444,#7f1d1d);
 }
 
 .clear{
+  margin-top:8px;
   background:#111;
+  color:#fecaca;
 }
 
 .log{
   margin-top:14px;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #7f1d1d;
+  background:#000;
   font-size:13px;
-  max-height:170px;
+  max-height:140px;
   overflow:auto;
   color:#fecaca;
 }
-
-/* ログ色 */
-.ok{color:#22c55e}
-.ng{color:#ef4444}
-.warn{color:#f59e0b}
-.info{color:#fca5a5}
 </style>
 </head>
 
@@ -91,12 +99,12 @@ button{
   <h1>Webhook Token Checker</h1>
 
   <textarea id="token"
-    placeholder="Webhook URLを改行で貼り付け"></textarea>
+    placeholder="WebhookのURLをここに貼り付けてください"></textarea>
 
-  <button class="check" onclick="check()">チェック</button>
+  <button onclick="check()">チェック</button>
   <button class="clear" onclick="clearLog()">ログクリア</button>
 
-  <div class="log" id="log">待機中</div>
+  <div class="log" id="log"></div>
 </div>
 
 <script>
@@ -105,63 +113,53 @@ const logEl = document.getElementById("log");
 
 function now(){
   const d=new Date();
-  return `[${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}]`;
+  const h=String(d.getHours()).padStart(2,"0");
+  const m=String(d.getMinutes()).padStart(2,"0");
+  const s=String(d.getSeconds()).padStart(2,"0");
+  return `[${h}:${m}:${s}]`;
 }
 
-function log(text,cls="info"){
-  logEl.innerHTML += `<br><span class="${cls}">${now()} ${text}</span>`;
+function addLog(text){
+  logEl.innerHTML += `${now()} ${text}<br>`;
   logEl.scrollTop = logEl.scrollHeight;
 }
 
 function clearLog(){
-  logEl.innerHTML = "ログをクリアしました";
+  logEl.innerHTML = "";
 }
 
 function isWebhookUrl(url){
   return /^https:\/\/(canary\.|ptb\.)?discord\.com\/api\/webhooks\/\d+\/[\w-]+$/i.test(url);
 }
 
-function fetchWithTimeout(url, ms=5000){
-  return Promise.race([
-    fetch(url,{method:"GET"}),
-    new Promise((_,reject)=>setTimeout(()=>reject("timeout"),ms))
-  ]);
-}
+function check(){
+  clearLog();
+  const url = tokenEl.value.trim();
 
-async function check(){
-  logEl.innerHTML = "";
-  const urls = tokenEl.value.split("\n").map(v=>v.trim()).filter(Boolean);
-
-  if(urls.length===0){
-    log("❌ 入力がありません","ng");
+  if(!url){
+    addLog("❌ URLが入力されていません");
     return;
   }
 
-  log(`▶ ${urls.length} 件チェック開始`);
-
-  for(const url of urls){
-    if(!isWebhookUrl(url)){
-      log("❌ URL形式エラー","ng");
-      continue;
-    }
-
-    try{
-      const res = await fetchWithTimeout(url,5000);
-      if(res.ok){
-        log("✅ このトークンは使えます","ok");
-      }else{
-        log(`❌ 無効 (${res.status})`,"ng");
-      }
-    }catch(e){
-      if(e==="timeout"){
-        log("⚠ タイムアウト（判定不可）","warn");
-      }else{
-        log("⚠ CORS制限で判定不可","warn");
-      }
-    }
+  if(!isWebhookUrl(url)){
+    addLog("❌ WebhookのURLではありません");
+    return;
   }
 
-  log("■ チェック完了","info");
+  addLog("⏳ チェック開始");
+  addLog("⌛ Webhookに接続中…");
+
+  fetch(url,{method:"GET"})
+    .then(res=>{
+      if(res.ok){
+        addLog("✅ このWebhookトークンは使えます");
+      }else{
+        addLog("❌ このWebhookトークンは使えません");
+      }
+    })
+    .catch(()=>{
+      addLog("❌ 接続エラーが発生しました");
+    });
 }
 </script>
 </body>
